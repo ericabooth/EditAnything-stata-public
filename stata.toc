@@ -1,0 +1,3 @@
+v 3
+d editanything: Open any text file (.ado, .sthlp, .do, .md, .py, .R, .csv, ...) from Stata
+p editanything
