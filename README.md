@@ -161,8 +161,10 @@ Full reference: `help editanything` after install.
 
 ---
 
-## Author
+## Authors
 
 Eric A. Booth · Texas 2036 · [eric.a.booth@gmail.com](mailto:eric.a.booth@gmail.com) · [@ericabooth](https://github.com/ericabooth)
 
+Elizabeth Teas · Far Harbor ·
+[elizabeth@farharbor.com](mailto:elizabeth@farharbor.com) · 
 Issues and PRs welcome.
