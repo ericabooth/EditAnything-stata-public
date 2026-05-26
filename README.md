@@ -160,6 +160,37 @@ Full reference: `help editanything` after install.
 - **Mutually-exclusive open modes.** Only one of `editor`, `view`, `external`, `showpath`, `clipboard` may be specified.
 
 ---
+## Installation from Github notes
+
+```stata
+net install editanything, ///
+    from("https://raw.githubusercontent.com/ericabooth/editanything-stata-public/main/") ///
+    replace
+```
+
+One-liner version:
+
+```stata
+net install editanything, from("https://raw.githubusercontent.com/ericabooth/editanything-stata-public/main/") replace
+```
+
+To confirm it landed and try it:
+
+```stata
+which editanything
+help editanything
+editanything regress, showpath
+```
+
+To uninstall / reinstall a newer version later:
+
+```stata
+ado uninstall editanything
+net install editanything, from("https://raw.githubusercontent.com/ericabooth/editanything-stata-public/main/") replace
+```
+
+
+---
 
 ## Authors
 
@@ -167,4 +198,7 @@ Eric A. Booth · Texas 2036 · [eric.a.booth@gmail.com](mailto:eric.a.booth@gmai
 
 Elizabeth Teas · Far Harbor ·
 [elizabeth@farharbor.com](mailto:elizabeth@farharbor.com) · 
+
+--
+
 Issues and PRs welcome.
