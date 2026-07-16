@@ -37,8 +37,8 @@ editanything report.pdf, external         // hand off to the OS default app
 ## Install
 
 ```stata
-net install editanything, ///
-    from("https://raw.githubusercontent.com/ericabooth/editanything-stata-public/main/")
+net install editanything, from("https://raw.githubusercontent.com/ericabooth/editanything-stata-public/main/") replace force
+help editanything
 ```
 
 Or drop `editanything.ado` and `editanything.sthlp` anywhere on your Stata `adopath` (e.g. `c(sysdir_personal)`).
@@ -163,15 +163,15 @@ Full reference: `help editanything` after install.
 ## Installation from Github notes
 
 ```stata
-net install editanything, ///
-    from("https://raw.githubusercontent.com/ericabooth/editanything-stata-public/main/") ///
-    replace
+net install editanything, from("https://raw.githubusercontent.com/ericabooth/editanything-stata-public/main/") replace force
+help editanything
 ```
 
 One-liner version:
 
 ```stata
-net install editanything, from("https://raw.githubusercontent.com/ericabooth/editanything-stata-public/main/") replace
+net install editanything, from("https://raw.githubusercontent.com/ericabooth/editanything-stata-public/main/") replace force
+help editanything
 ```
 
 To confirm it landed and try it:
@@ -188,7 +188,6 @@ To uninstall / reinstall a newer version later:
 ado uninstall editanything
 net install editanything, from("https://raw.githubusercontent.com/ericabooth/editanything-stata-public/main/") replace
 ```
-
 
 ---
 
