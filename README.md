@@ -45,6 +45,8 @@ Or drop `editanything.ado` and `editanything.sthlp` anywhere on your Stata `adop
 
 Requires Stata 14+.
 
+<img width="2400" height="1260" alt="editanything" src="https://github.com/user-attachments/assets/7bf517a8-1f1e-4248-b943-c9ded3a7c758" />
+
 ---
 
 ## Quick examples
