@@ -241,4 +241,4 @@ Email: {browse "mailto:elizabeth@farharbor.com":elizabeth@farharbor.com}{break}
 
 {pstd}
 Issues and pull requests welcome at
-{browse "https://github.com/ericabooth/editanything-stata-public":github.com/ericabooth/editanything-stata-public}.
+{browse "https://github.com/ericabooth/EditAnything-stata-public":github.com/ericabooth/EditAnything-stata-public}.

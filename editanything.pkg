@@ -16,7 +16,8 @@ d
 d Authors: Eric A. Booth, Sr Researcher, Texas 2036
 d          Elizabeth Teas, Far Harbor
 d Support: eric.a.booth@gmail.com
-d Distribution-Date: 20260526
+d Distribution-Date: 20260725
 d
 f editanything.ado
 f editanything.sthlp
+f editanything_example.do
