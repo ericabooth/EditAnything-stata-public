@@ -1,4 +1,6 @@
-*! editanything v2.0.0  26may2026  Eric A. Booth (eric.a.booth@gmail.com)
+*! editanything v2.0.0  26may2026
+*! Eric A. Booth, Sr Researcher, Texas 2036 (eric.a.booth@gmail.com)
+*! Elizabeth Teas, Far Harbor (elizabeth@farharbor.com)
 *! Open *any* text file (.ado, .sthlp, .hlp, .do, .mata, .md, .txt, .html,
 *! .raw, .csv, .tsv, .R, .py, .json, .yaml, .toml, .xml, .css, .js, .sql,
 *! .sh, .bat, .ini, .cfg, .log, .smcl, .tex, .bib, ...) from inside Stata.
