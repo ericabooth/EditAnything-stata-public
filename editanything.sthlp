@@ -235,7 +235,7 @@ GitHub: {browse "https://www.github.com/ericabooth":www.github.com/ericabooth}
 
 {pstd}
 Elizabeth Teas{break}
-Far Harbor{break}
+Sr Research Scientist, Far Harbor, LLC{break}
 Email: {browse "mailto:elizabeth@farharbor.com":elizabeth@farharbor.com}{break}
 
 

@@ -197,7 +197,7 @@ net install editanything, from("https://raw.githubusercontent.com/ericabooth/Edi
 
 Eric A. Booth · Sr Researcher, Texas 2036 · [eric.a.booth@gmail.com](mailto:eric.a.booth@gmail.com) · [@ericabooth](https://github.com/ericabooth)
 
-Elizabeth Teas · Far Harbor ·
+Elizabeth Teas · Sr Research Scientist, Far Harbor, LLC ·
 [elizabeth@farharbor.com](mailto:elizabeth@farharbor.com) · 
 
 --
