@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 2.0.1 09nov2026 Eric A. Booth and Elizabeth Teas}{...}
+{* *! version 2.0.2 09nov2026 Eric A. Booth and Elizabeth Teas}{...}
 {vieweralsosee "doedit"   "help doedit"}{...}
 {vieweralsosee "findfile" "help findfile"}{...}
 {vieweralsosee "view"     "help view"}{...}
@@ -44,7 +44,7 @@ Help file for {hi:editanything}
 
 {syntab :Safety / behavior}
 {synopt:{opt rep:lace}}copy a Stata-supplied (base/updates) ado into PERSONAL, then open the copy{p_end}
-{synopt:{opt f:orce}}edit a Stata-supplied file in place anyway, or bypass the 32 KB size guard{p_end}
+{synopt:{opt f:orce}}edit a Stata-supplied file in place anyway{p_end}
 {synopt:{opt q:uietly}}suppress the file-info banner{p_end}
 {synoptline}
 
@@ -70,7 +70,7 @@ Supported text formats (this is just the {it:tested} list — anything plain-tex
 will open):
 
 {phang2}
-{bf:Stata} — {it:.ado .sthlp .hlp .smcl .do .mata .gph}{break}
+{bf:Stata} — {it:.ado .sthlp .hlp .smcl .do .mata}{break}
 {bf:Markup / docs} — {it:.md .markdown .html .htm .tex .bib .xml .rst}{break}
 {bf:Data}  — {it:.csv .tsv .txt .raw .log}{break}
 {bf:Code}  — {it:.R .r .py .js .css .sql .sh .bat .ps1}{break}
@@ -90,8 +90,8 @@ OS default app.
 
 {phang}
 {opt editor} (default) opens the resolved file in Stata's Do-file Editor with
-{help doedit}.  Files larger than 32 KB cannot be opened on Stata < 11 — see
-{opt force} and {opt external} below.
+{help doedit}.  If {cmd:doedit} fails, {cmd:editanything} shows its return
+code and suggests {opt view} or {opt external}.
 
 {phang}
 {opt view} opens the file read-only in the Viewer.  For {it:.sthlp}, {it:.hlp},
@@ -116,7 +116,9 @@ plain text (e.g. {it:.pdf}, {it:.xlsx}, {it:.dta}, images).
 {phang}
 {opt clipboard} copies the raw contents of the resolved file to the system
 clipboard (uses {cmd:pbcopy} on macOS, {cmd:clip} on Windows, {cmd:xclip} on
-Linux).  Great for pasting a snippet into a Slack message or an email.
+Linux).  Great for pasting a snippet into a Slack message or an email.  On
+macOS and Linux, if the tool fails or is not installed, {cmd:editanything}
+shows the message and exits with return code 691.
 
 {dlgtab:File resolution}
 
@@ -126,8 +128,8 @@ has none.  The default is {bf:ado}.  Example: {cmd:editanything mynotes, ext(md)
 will look for {bf:mynotes.md} on the ado-path.
 
 {phang}
-{opt personal} looks in {bf:c(sysdir_personal)} ({bf:`c(sysdir_personal)'})
-{it:first} when resolving the filename.  Useful when you have a local override
+{opt personal} looks in your PERSONAL folder ({cmd:display c(sysdir_personal)}
+shows it) {it:first} when resolving the filename.  Useful when you have a local override
 of a community-contributed ado.
 
 {phang}
@@ -143,8 +145,11 @@ it copies {bf:/ado/base/.../foo.ado} into {bf:c(sysdir_personal)} and opens
 the copy, so Stata updates won't overwrite your edits.
 
 {phang}
-{opt force} bypasses the two guardrails: it edits Stata-supplied files in
-place and skips the 32 KB do-edit size check on Stata < 11.
+{opt force} bypasses the guardrail on Stata-supplied files and edits them in
+place.  Without {opt force}, {opt replace}, {opt view}, {opt showpath},
+{opt external}, or {opt clipboard}, a Stata-supplied file is refused: the
+command prints the alternatives (with the file's full path) and exits with
+return code 0.
 
 {phang}
 {opt quietly} suppresses the file-info banner (path / size / type / flags).
@@ -200,7 +205,7 @@ place and skips the 32 KB do-edit size check on Stata < 11.
 {synopt:{cmd:r(size)}}file size in bytes (when detectable){p_end}
 
 {p2col 5 22 26 2: Macros}{p_end}
-{synopt:{cmd:r(file)}}fully-resolved file path{p_end}
+{synopt:{cmd:r(file)}}absolute file path (relative hits are resolved against the working folder, and a leading {bf:~/} is expanded){p_end}
 {synopt:{cmd:r(basename)}}filename portion only (no directory){p_end}
 {synopt:{cmd:r(extension)}}detected extension (lowercased, no dot){p_end}
 
@@ -217,18 +222,25 @@ place and skips the 32 KB do-edit size check on Stata < 11.
 {phang2}3. {cmd:editanything} extends the workflow to any text file, not just
    {it:.ado} — same muscle memory for {it:.py}, {it:.md}, {it:.csv}, etc.{p_end}
 
-{pstd}{ul:What about huge files?}  Stata's Do-file Editor cannot open files >
-32 KB on Stata < 11, and very large files can be slow even on current Stata.
-Use {opt external} to delegate to your OS editor (BBEdit, VS Code, Notepad++,
+{pstd}{ul:What about huge files?}  Very large files can be slow in the
+Do-file Editor.  Use {opt external} to delegate to your OS editor (BBEdit, VS Code, Notepad++,
 etc.) or {opt view} to skim read-only.
 
 {pstd}{ul:Cross-platform path handling.}  Backslashes are normalized to forward
-slashes for display, leading {bf:~} is expanded to {bf:$HOME} (or {bf:USERPROFILE} on Windows), and the
+slashes, a leading {bf:~/} is expanded to {bf:HOME} (or {bf:USERPROFILE}, then
+{bf:HOMEDRIVE}+{bf:HOMEPATH}, on Windows), relative paths are made absolute, and the
 clipboard / external-app calls dispatch to the right OS-native tool.
 
 
 {marker changes}{...}
 {title:Changes}
+
+{pstd}2.0.2 (09nov2026): {cmd:r(file)} and the banner always hold an absolute
+path; files found in or relative to the working folder used to come back
+relative, and {opt replace} returned an unexpanded {bf:~} path.  {opt clipboard}
+reports a failed or missing {cmd:pbcopy}/{cmd:xclip} instead of always
+claiming success.  The {cmd:doedit} failure message shows its return code, and
+suggested follow-up commands quote the full path.
 
 {pstd}2.0.1 (09nov2026): {opt external} now passes the real path to the opener
 (2.0.0 passed Stata compound quotes, so the opener got a path that does not

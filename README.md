@@ -5,8 +5,8 @@
 `editanything` is a drop-in upgrade to SSC's [`adoedit`](https://ideas.repec.org/c/boc/bocode/s457486.html). It searches the ado-path for the file you name (or goes to the exact file if path provided), opens it in the Do-file Editor by default (or view in the smcl viewer), and adds a stack of useful options for everything else you'd want to do with a text file from inside Stata.
 
 ```stata
-editanything regress.ado                  // edit a system ado (safely)
-editanything documentation.html           // edit a html or css file (safely)
+editanything regress.ado                  // refuses to edit a system ado; lists safe options
+editanything documentation.html           // edit an html or css file
 editanything regress.sthlp, view          // read only a help file in the Viewer
 editanything README.md                    // edit Markdown from the editor
 editanything analysis.py                  // ...or Python, R, CSV, JSON, ...
@@ -28,9 +28,9 @@ editanything report.pdf, external         // hand off to the OS default app
   - `view` — render `.sthlp`/`.smcl` in the Viewer; show other text as-is.
   - `external` — let the OS open it (BBEdit, VS Code, Notepad++, Preview, Excel, ...). Paths with spaces, accents and apostrophes are passed intact, and an opener failure is reported (rc 691).
   - `showpath` — return the clickable path without opening anything.
-  - `clipboard` — copy the file's contents to the system clipboard.
+  - `clipboard` — copy the file's contents to the system clipboard. A failed or missing `pbcopy`/`xclip` is reported (rc 691).
 - **`new`-as-an-option** spins up an empty file and opens it.
-- **Returns the path** in `r(file)` for scripting.
+- **Returns the absolute path** in `r(file)` for scripting.
 
 ---
 
@@ -135,7 +135,7 @@ Uses `pbcopy` on macOS, `clip` on Windows, `xclip` on Linux.
 | `personal` | Search `c(sysdir_personal)` first |
 | `new` | Create a brand-new empty file at `filename`, then open it |
 | `replace` | Clone a `base/`/`updates/` ado into PERSONAL, then open the copy |
-| `force` | Skip the base-file and 32 KB size guardrails |
+| `force` | Edit a Stata-supplied file in place anyway |
 | `quietly` | Suppress the file-info banner |
 
 Full reference: `help editanything` after install.
@@ -146,7 +146,7 @@ Full reference: `help editanything` after install.
 
 | Return | What it is |
 | --- | --- |
-| `r(file)` | Fully-resolved file path |
+| `r(file)` | Absolute file path (relative hits are resolved against the working folder; a leading `~/` is expanded) |
 | `r(basename)` | Filename portion only |
 | `r(extension)` | Detected extension (lowercased, no dot) |
 | `r(size)` | File size in bytes (when detectable) |
@@ -157,26 +157,14 @@ Full reference: `help editanything` after install.
 
 - **Resolution order.** `personal` (if set) → cwd / given path → `findfile` (full ado-path) → default-extension fallback → PERSONAL fallback. The first hit wins.
 - **Extension fallbacks.** With the default `extension(ado)`, if `editanything foo` doesn't find `foo` or `foo.ado`, it also tries `foo.sthlp`, `foo.hlp`, then `foo.do`.
-- **Size guard.** The Do-file Editor can't open files >32 KB on Stata < 11. On modern Stata there is no hard limit, but very large files are slow — `external` is usually the right call.
-- **Stata-supplied files.** Anything under `/ado/base/` or `/ado/updates/` is refused unless you pass `replace` (recommended) or `force`. The Viewer (`view`) and clipboard/external modes always work — they don't modify the file.
+- **Large files.** Very large files are slow in the Do-file Editor — `external` is usually the right call.
+- **Stata-supplied files.** Anything under `/ado/base/` or `/ado/updates/` is refused (the alternatives are printed and the command exits with rc 0) unless you pass `replace` (recommended) or `force`. The Viewer (`view`) and clipboard/external modes always work — they don't modify the file.
 - **Mutually-exclusive open modes.** Only one of `editor`, `view`, `external`, `showpath`, `clipboard` may be specified.
 
 ---
-## Installation from Github notes
+## Installation notes
 
-```stata
-net install editanything, from("https://raw.githubusercontent.com/ericabooth/EditAnything-stata-public/main/") replace force
-help editanything
-```
-
-One-liner version:
-
-```stata
-net install editanything, from("https://raw.githubusercontent.com/ericabooth/EditAnything-stata-public/main/") replace force
-help editanything
-```
-
-To confirm it landed and try it:
+The install command is under [Install](#install). To confirm it landed and try it:
 
 ```stata
 which editanything
@@ -205,4 +193,5 @@ Elizabeth Teas · Sr Research Scientist, Far Harbor, LLC ·
 Issues and PRs welcome.
 
 ## Changelog
+- **2.0.2 (2026-11-09)**: `r(file)` and the banner always hold an absolute path. Files found in or relative to the working folder used to come back relative, and `replace` returned an unexpanded `~` path. `clipboard` reports a failed or missing `pbcopy`/`xclip` instead of always claiming success. The `doedit` failure message shows its return code, and suggested follow-up commands quote the full path. The Stata < 11 size guard, which could never run, is gone.
 - **2.0.1 (2026-11-09)**: `external` now hands the opener the real path. 2.0.0 passed Stata compound quotes to `open`/`start`/`xdg-open`, so the OS got a path that does not exist while the command still printed success. Opener failures on macOS and Linux are now reported with rc 691.

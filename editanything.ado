@@ -1,4 +1,4 @@
-*! editanything v2.0.1  09nov2026
+*! editanything v2.0.2  09nov2026
 *! Eric A. Booth, Sr Researcher, Texas 2036 (eric.a.booth@gmail.com)
 *! Elizabeth Teas, Sr Research Scientist, Far Harbor, LLC (elizabeth@farharbor.com)
 *! Open *any* text file (.ado, .sthlp, .hlp, .do, .mata, .md, .txt, .html,
@@ -11,6 +11,17 @@
 *! a new empty file, or safely clone a base/updates ado into PERSONAL.
 *
 * Changelog
+*   2.0.2  09nov2026  r(file) and the banner always carry an absolute path:
+*                     files found in or relative to the working folder were
+*                     returned relative, and replace returned an unexpanded
+*                     ~ path from c(sysdir_personal). Only a leading ~/ is
+*                     expanded (HOME, then USERPROFILE, then HOMEDRIVE and
+*                     HOMEPATH). clipboard reports a failed or missing
+*                     pbcopy/xclip instead of always printing success. The
+*                     doedit failure message shows its return code, and the
+*                     suggested follow-up commands quote the full path.
+*                     Removed the 32 KB guard for Stata < 11, which could not
+*                     run under version 14.
 *   2.0.1  09nov2026  external: the opener now receives the real path. macOS
 *                     and Linux call open/xdg-open through the shell with the
 *                     path single-quoted and report a failure; Windows passes
@@ -159,14 +170,11 @@ program define editanything, rclass
     }
 
     *------------------------------------------------------------------*
-    * 4. Normalize path: backslash -> /, expand leading ~
+    * 4. Normalize path: backslash -> /, expand a leading ~/, make the
+    *    path absolute (relative hits are resolved against c(pwd))
     *------------------------------------------------------------------*
-    local file : subinstr local file "\" "/", all
-    local home : environment HOME
-    if missing(`"`home'"') local home : environment USERPROFILE
-    if substr(`"`file'"',1,1) == "~" & !missing(`"`home'"') {
-        local file : subinstr local file "~" "`home'"
-    }
+    _editanything_abspath `"`file'"'
+    local file `"`ea_path'"'
 
     *------------------------------------------------------------------*
     * 5. Capture metadata: extension, size, base-file flag
@@ -213,7 +221,8 @@ program define editanything, rclass
             copy `"`file'"' `"`dest'"'
             di as txt `"copied: {input:`file'}"'
             di as txt `"    to: {input:`dest'}"'
-            local file `"`dest'"'
+            _editanything_abspath `"`dest'"'
+            local file `"`ea_path'"'
             local is_basefile = 0
         }
     }
@@ -244,12 +253,12 @@ program define editanything, rclass
     if `is_basefile' & "`force'" == "" & "`view'" == "" & "`showpath'" == "" ///
                     & "`external'" == "" & "`clipboard'" == "" {
         di as err _n "Refusing to edit a Stata-supplied file in place."
-        di as txt    `"   . editanything `fbasename', replace    "' ///
-                     `"(copy to PERSONAL, then edit)"'
-        di as txt    `"   . editanything `fbasename', view       "' ///
-                     `"(open read-only in the Viewer)"'
-        di as txt    `"   . editanything `fbasename', force      "' ///
-                     `"(edit anyway; updates may overwrite)"'
+        di as txt    `"   . editanything "`file'", replace"'
+        di as txt    `"       (copy to PERSONAL, then edit)"'
+        di as txt    `"   . editanything "`file'", view"'
+        di as txt    `"       (open read-only in the Viewer)"'
+        di as txt    `"   . editanything "`file'", force"'
+        di as txt    `"       (edit anyway; updates may overwrite)"'
         exit 0
     }
 
@@ -266,14 +275,24 @@ program define editanything, rclass
 
     * -- clipboard: copy raw file contents to system clipboard
     if "`clipboard'" != "" {
-        if `_ismac' {
-            shell cat "`file'" | pbcopy
-        }
-        else if `_iswindows' {
-            shell type "`file'" | clip
+        if `_iswindows' {
+            local wfile : subinstr local file "/" "\", all
+            shell type "`wfile'" | clip
         }
         else {
-            shell cat "`file'" | xclip -selection clipboard
+            * an external program is required; the path is single-quoted
+            * for /bin/sh and a failure (including a missing tool) is caught
+            local cbtool = cond(`_ismac', "pbcopy", "xclip")
+            local cbargs = cond(`_ismac', "", "-selection clipboard")
+            local qfile : subinstr local file "'" "'\''", all
+            tempfile cblog
+            quietly shell cat '`qfile'' | `cbtool' `cbargs' > "`cblog'" 2>&1 || echo "__editanything_shell_failed__" >> "`cblog'"
+            _editanything_readlog `"`cblog'"'
+            if `ea_fail' {
+                di as err `"`cbtool' could not copy the file to the clipboard: `macval(ea_msg)'"'
+                if !`_ismac' di as err "(install xclip, or use {opt view} or {opt external} instead)"
+                exit 691
+            }
         }
         di as txt "contents copied to system clipboard."
         exit 0
@@ -297,22 +316,10 @@ program define editanything, rclass
             local qfile : subinstr local file "'" "'\''", all
             if substr(`"`file'"', 1, 1) == "-" local qfile `"./`qfile'"'
             tempfile oplog
-            quietly shell `opener' '`qfile'' > "`oplog'" 2>&1 || echo "__editanything_open_failed__" >> "`oplog'"
-            local opfail = 0
-            local opmsg ""
-            tempname oh
-            capture file open `oh' using `"`oplog'"', read text
-            if !_rc {
-                file read `oh' line
-                while r(eof) == 0 {
-                    if strpos(`"`macval(line)'"', "__editanything_open_failed__") local opfail = 1
-                    else if `"`macval(opmsg)'"' == "" local opmsg `"`macval(line)'"'
-                    file read `oh' line
-                }
-                file close `oh'
-            }
-            if `opfail' {
-                di as err `"`opener' could not open the file: `macval(opmsg)'"'
+            quietly shell `opener' '`qfile'' > "`oplog'" 2>&1 || echo "__editanything_shell_failed__" >> "`oplog'"
+            _editanything_readlog `"`oplog'"'
+            if `ea_fail' {
+                di as err `"`opener' could not open the file: `macval(ea_msg)'"'
                 exit 691
             }
         }
@@ -335,21 +342,69 @@ program define editanything, rclass
     *------------------------------------------------------------------*
     * 10. Default: open in the Do-file Editor
     *------------------------------------------------------------------*
-    if "`force'" == "" & !missing(`fsize') {
-        if `fsize' > 32000 & `c(stata_version)' < 11 {
-            di as err _n "file is `fsize' bytes; Stata < 11 cannot doedit > 32 KB."
-            di as txt "try: " as cmd `"editanything `fbasename', external"' _n ///
-                    "  or " as cmd `"editanything `fbasename', view"'
-            exit 603
-        }
-    }
-
     capture noisily doedit `"`file'"'
     if _rc {
-        di as err _n "doedit failed (rc=`_rc')."
+        local rc = _rc
+        di as err _n "doedit failed (rc=`rc')."
         di as txt "alternatives:"
-        di as txt `"   . editanything `fbasename', view"'
-        di as txt `"   . editanything `fbasename', external"'
-        exit _rc
+        di as txt `"   . editanything "`file'", view"'
+        di as txt `"   . editanything "`file'", external"'
+        exit `rc'
     }
+end
+
+
+* Normalize a path: backslashes to /, a leading ~/ (or a bare ~) expanded
+* from HOME, USERPROFILE, or HOMEDRIVE+HOMEPATH, a leading ./ dropped, and a
+* relative path resolved against c(pwd).  Result in local ea_path.
+program define _editanything_abspath
+    version 14
+    args p
+    local p : subinstr local p "\" "/", all
+    if `"`p'"' == "~" | substr(`"`p'"', 1, 2) == "~/" {
+        local home : environment HOME
+        if `"`home'"' == "" local home : environment USERPROFILE
+        if `"`home'"' == "" {
+            local hd : environment HOMEDRIVE
+            local hp : environment HOMEPATH
+            local home `"`hd'`hp'"'
+        }
+        if `"`home'"' != "" {
+            local home : subinstr local home "\" "/", all
+            local p = `"`home'"' + substr(`"`p'"', 2, .)
+        }
+    }
+    while substr(`"`p'"', 1, 2) == "./" {
+        local p = substr(`"`p'"', 3, .)
+    }
+    if !regexm(`"`p'"', "^(/|~|[A-Za-z]:/)") {
+        local pwd `"`c(pwd)'"'
+        local pwd : subinstr local pwd "\" "/", all
+        if substr(`"`pwd'"', -1, 1) != "/" local pwd `"`pwd'/"'
+        local p `"`pwd'`p'"'
+    }
+    c_local ea_path `"`p'"'
+end
+
+
+* Read a shell log written as  cmd > log 2>&1 || echo marker >> log.
+* Sets ea_fail (1 if the marker is present) and ea_msg (first other line).
+program define _editanything_readlog
+    version 14
+    args logfile
+    local fail = 0
+    local msg ""
+    tempname oh
+    capture file open `oh' using `"`logfile'"', read text
+    if !_rc {
+        file read `oh' line
+        while r(eof) == 0 {
+            if strpos(`"`macval(line)'"', "__editanything_shell_failed__") local fail = 1
+            else if `"`macval(msg)'"' == "" local msg `"`macval(line)'"'
+            file read `oh' line
+        }
+        file close `oh'
+    }
+    c_local ea_fail `fail'
+    c_local ea_msg `"`macval(msg)'"'
 end
