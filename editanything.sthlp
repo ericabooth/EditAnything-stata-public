@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 2.0.0 26may2026 Eric A. Booth and Elizabeth Teas}{...}
+{* *! version 2.0.1 09nov2026 Eric A. Booth and Elizabeth Teas}{...}
 {vieweralsosee "doedit"   "help doedit"}{...}
 {vieweralsosee "findfile" "help findfile"}{...}
 {vieweralsosee "view"     "help view"}{...}
@@ -100,8 +100,11 @@ shown verbatim ({cmd:view "{it:file}", asis}).  Handy for skimming long help
 files or logs without risking edits.
 
 {phang}
-{opt external} delegates to your OS default app via {help winexec}
-({cmd:open} on macOS, {cmd:start} on Windows, {cmd:xdg-open} on Linux).  Use
+{opt external} delegates to your OS default app: {cmd:open} on macOS and
+{cmd:xdg-open} on Linux (run through {help shell} with the path single-quoted,
+so spaces, accents and apostrophes are safe), and {cmd:cmd /c start} on Windows
+(through {help winexec}).  If {cmd:open} or {cmd:xdg-open} reports a failure,
+{cmd:editanything} shows the message and exits with return code 691.  Use
 this for files that exceed the Do-file Editor's size limit or that are not
 plain text (e.g. {it:.pdf}, {it:.xlsx}, {it:.dta}, images).
 
@@ -220,8 +223,16 @@ Use {opt external} to delegate to your OS editor (BBEdit, VS Code, Notepad++,
 etc.) or {opt view} to skim read-only.
 
 {pstd}{ul:Cross-platform path handling.}  Backslashes are normalized to forward
-slashes for display, leading {bf:~} is expanded to {bf:$HOME}, and the
+slashes for display, leading {bf:~} is expanded to {bf:$HOME} (or {bf:USERPROFILE} on Windows), and the
 clipboard / external-app calls dispatch to the right OS-native tool.
+
+
+{marker changes}{...}
+{title:Changes}
+
+{pstd}2.0.1 (09nov2026): {opt external} now passes the real path to the opener
+(2.0.0 passed Stata compound quotes, so the opener got a path that does not
+exist while the command still reported success), and failures are reported.
 
 
 {marker authors}{...}

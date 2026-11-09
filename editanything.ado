@@ -1,4 +1,4 @@
-*! editanything v2.0.0  26may2026
+*! editanything v2.0.1  09nov2026
 *! Eric A. Booth, Sr Researcher, Texas 2036 (eric.a.booth@gmail.com)
 *! Elizabeth Teas, Sr Research Scientist, Far Harbor, LLC (elizabeth@farharbor.com)
 *! Open *any* text file (.ado, .sthlp, .hlp, .do, .mata, .md, .txt, .html,
@@ -9,6 +9,16 @@
 *! any text-readable extension. Options let you preview in the Viewer, hand
 *! the file to your OS default app, copy contents to the clipboard, create
 *! a new empty file, or safely clone a base/updates ado into PERSONAL.
+*
+* Changelog
+*   2.0.1  09nov2026  external: the opener now receives the real path. macOS
+*                     and Linux call open/xdg-open through the shell with the
+*                     path single-quoted and report a failure; Windows passes
+*                     plain double quotes and backslashes to cmd /c start.
+*                     (2.0.0 sent Stata compound quotes, so the opener got a
+*                     path that does not exist and the command still reported
+*                     success.) Leading ~ also expands from USERPROFILE.
+*   2.0.0  26may2026  Previous release.
 
 program define editanything, rclass
     version 14
@@ -153,6 +163,7 @@ program define editanything, rclass
     *------------------------------------------------------------------*
     local file : subinstr local file "\" "/", all
     local home : environment HOME
+    if missing(`"`home'"') local home : environment USERPROFILE
     if substr(`"`file'"',1,1) == "~" & !missing(`"`home'"') {
         local file : subinstr local file "~" "`home'"
     }
@@ -269,15 +280,41 @@ program define editanything, rclass
     }
 
     * -- external: hand off to the OS default application
+    *    (an external program is required, so this is the one OS-branched
+    *    shell call; the path is passed with plain quoting the OS understands)
     if "`external'" != "" {
-        if `_ismac' {
-            winexec open `"`file'"'
-        }
-        else if `_iswindows' {
-            winexec cmd /c start "" `"`file'"'
+        if `_iswindows' {
+            local wfile : subinstr local file "/" "\", all
+            capture winexec cmd /c start "" "`wfile'"
+            if _rc {
+                di as err `"could not hand the file to the OS default application (rc=`=_rc')"'
+                exit _rc
+            }
         }
         else {
-            winexec xdg-open `"`file'"'
+            local opener = cond(`_ismac', "open", "xdg-open")
+            * single-quote for /bin/sh: each ' becomes '\''
+            local qfile : subinstr local file "'" "'\''", all
+            if substr(`"`file'"', 1, 1) == "-" local qfile `"./`qfile'"'
+            tempfile oplog
+            quietly shell `opener' '`qfile'' > "`oplog'" 2>&1 || echo "__editanything_open_failed__" >> "`oplog'"
+            local opfail = 0
+            local opmsg ""
+            tempname oh
+            capture file open `oh' using `"`oplog'"', read text
+            if !_rc {
+                file read `oh' line
+                while r(eof) == 0 {
+                    if strpos(`"`macval(line)'"', "__editanything_open_failed__") local opfail = 1
+                    else if `"`macval(opmsg)'"' == "" local opmsg `"`macval(line)'"'
+                    file read `oh' line
+                }
+                file close `oh'
+            }
+            if `opfail' {
+                di as err `"`opener' could not open the file: `macval(opmsg)'"'
+                exit 691
+            }
         }
         di as txt "opened in OS default application."
         exit 0

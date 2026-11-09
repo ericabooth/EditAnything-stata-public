@@ -1,5 +1,5 @@
 *==============================================================================*
-* test_editanything.do -- battery for editanything v2.0.0
+* test_editanything.do -- battery for editanything v2.0.1
 * Run:  stata-mp -b do test_editanything.do ["/path/to/pkg"]
 * Batch-safe: exercises showpath, returns, creation, and refusals only
 * (opening the Do-file Editor is a GUI action and is not tested here).

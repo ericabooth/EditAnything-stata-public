@@ -26,7 +26,7 @@ editanything report.pdf, external         // hand off to the OS default app
 - **Right tool for the job.**
   - `editor` (default) — open in the Do-file Editor.
   - `view` — render `.sthlp`/`.smcl` in the Viewer; show other text as-is.
-  - `external` — let the OS open it (BBEdit, VS Code, Notepad++, Preview, Excel, ...).
+  - `external` — let the OS open it (BBEdit, VS Code, Notepad++, Preview, Excel, ...). Paths with spaces, accents and apostrophes are passed intact, and an opener failure is reported (rc 691).
   - `showpath` — return the clickable path without opening anything.
   - `clipboard` — copy the file's contents to the system clipboard.
 - **`new`-as-an-option** spins up an empty file and opens it.
@@ -203,3 +203,6 @@ Elizabeth Teas · Sr Research Scientist, Far Harbor, LLC ·
 --
 
 Issues and PRs welcome.
+
+## Changelog
+- **2.0.1 (2026-11-09)**: `external` now hands the opener the real path. 2.0.0 passed Stata compound quotes to `open`/`start`/`xdg-open`, so the OS got a path that does not exist while the command still printed success. Opener failures on macOS and Linux are now reported with rc 691.
